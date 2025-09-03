@@ -1,0 +1,150 @@
+# ----------------------------
+# LIBRARIES
+
+# External libraries
+import time
+# Import the PCA9685 module.
+from adafruit_pca9685 import PCA9685
+from board import SCL, SDA
+import busio
+
+# Uncomment to enable debug output.
+#import logging
+#logging.basicConfig(level=logging.DEBUG)
+
+# ----------------------------
+# PARAMETERS
+# 
+# -------------------------------------------------------------------
+# | REMEMBER TO ADJUST THEM TO FIT YOUR SERVO MOTOR SPECIFICATION ! |
+# -------------------------------------------------------------------
+
+SERVO_MOTOR_FREQUENCY = 50 #In Hz
+SERVO_MOTOR_DUTY_CYCLE_MIN = 2.5  # Min duty cycle, in %
+SERVO_MOTOR_DUTY_CYCLE_MAX = 12.5  # Max duty cycle, in %
+SERVO_MOTOR_ANGLE_MIN = 0  # Min angle, in degrees
+SERVO_MOTOR_ANGLE_MAX = 180  # Max angle, in degrees
+PWM_BOARD_RESOLUTION = 4096 # PWM control board resolution
+
+# ----------------------------
+# CODE
+
+def convert_angle_to_pwm_board_step(angle):
+    '''
+    Transform a given angle to the proper step for the PWB board.
+    Usually boards like the PCA9685 uses a discrete representation for the PWM.
+    They divide the Pulse Cycle in 4096 steps, and we have to say from
+    which step to which step we want the pulse to be high.
+
+    We assume that, for servo motors, the first step is 0,
+    so we just have to calculate the ending step, so to represent the given angle
+    as a discrete PWM.
+
+    To calculate the step, we first calculate the relative duty cycle of the angle.
+    We then multiply the PWM_BOARD_RESOLUTION by the duty cycle (which is a percentage).
+    '''
+    # Check that the angle is within the limits
+    if (angle < SERVO_MOTOR_ANGLE_MIN) | (angle > SERVO_MOTOR_ANGLE_MAX):
+        raise ValueError('The given angle ({}) is outside the limits!'.format(angle))
+
+    # We make sure angle is treated as a float
+    servo_duty_cycle = ( float(angle)/(SERVO_MOTOR_ANGLE_MAX-SERVO_MOTOR_ANGLE_MIN) )* (SERVO_MOTOR_DUTY_CYCLE_MAX-SERVO_MOTOR_DUTY_CYCLE_MIN) + SERVO_MOTOR_DUTY_CYCLE_MIN
+
+    # Check that the duty cycle is within the limits
+    # This check is just to be sure that also the angle parameters are set correctly
+    if (servo_duty_cycle < SERVO_MOTOR_DUTY_CYCLE_MIN) | (servo_duty_cycle > SERVO_MOTOR_DUTY_CYCLE_MAX):
+        raise ValueError('The given servo duty cycle ({}) is outside the limits!'.format(servo_duty_cycle))
+
+    # The step must be an integer, as the board does not accept floats
+    pwm_step = int(PWM_BOARD_RESOLUTION*servo_duty_cycle/100)
+
+    print('angle: {}'.format(angle))
+    print('servo_duty_cycle: {}'.format(servo_duty_cycle))
+    print('pwm_step: {}'.format(pwm_step))
+
+    return pwm_step
+
+def move_servo(pwm, servo_channel, angle):
+    '''
+    We move the specified servo to the given angle.
+    '''
+
+    pwm_step = convert_angle_to_pwm_board_step(angle)
+
+    pwm.channels[servo_channel].duty_cycle = pwm_step * 16
+
+    
+
+def manual_control(pwm, servo_channel):
+
+    print('Move the servo manually (press "x" to exit).')
+    input_data = None
+    while True:
+        
+        input_data = input("Enter the angle: ")
+
+        if input_data.lower() == 'x':
+            break
+
+        try:
+            angle = int(input_data)
+        except Exception:
+            print('Either enter an integer or "x" to exit.')
+            continue
+        
+        try:
+            move_servo(pwm, servo_channel, angle)
+        except ValueError:
+            print('The inputted angle is not valid.')
+            continue
+
+def automatic_control(pwm, servo_channel):
+    print('Move the servo with a test pattern.')
+    move_servo(pwm, servo_channel, 0)
+    time.sleep(3)
+    move_servo(pwm, servo_channel, 180)
+    time.sleep(3)
+    move_servo(pwm, servo_channel, 90)
+    time.sleep(3)
+    move_servo(pwm, servo_channel, 0)
+    time.sleep(3)
+
+
+if __name__ == "__main__":
+    
+    print('Initialize PWM board controller')
+    # Initialise the PCA9685 using the default address (0x40).
+    i2c = busio.I2C(SCL, SDA)
+    pwm = PCA9685(i2c)
+
+    print('Set frequency')
+    # Set the frequency
+    pwm.frequency = SERVO_MOTOR_FREQUENCY
+
+    while True:
+        
+        input_data = input("What servo motor (channel) you want to control? ")
+
+        try:
+            servo_channel = int(input_data)
+
+            if servo_channel < 0 or servo_channel > 5:
+                raise ValueError
+
+        except Exception:
+            print('Enter an integer between 0 and 5.')
+            continue
+        
+        input_data = input("What do you want to do?\n[1] Manual test\n[2] Automatic test\n[x] Exit\nAnswer: ")
+
+        if input_data == '1':
+            manual_control(pwm, servo_channel)
+        elif input_data == '2':
+            automatic_control(pwm, servo_channel)
+        elif input_data.lower() == 'x':
+            break
+        else:
+            print('Unrecognized input.')
+            continue
+
+        print('Done.')
