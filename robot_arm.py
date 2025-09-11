@@ -63,6 +63,7 @@ if __name__ == "__main__":
     arm = RobotArm(pwm)
 
     # Test movements
+    # Or initial state 
     arm.move_servo(5, 90)   # move servo 5
     arm.move_servo(4, 135)  # move servo 4
     arm.move_servo(2, 45)   # move servo 2
@@ -72,5 +73,36 @@ if __name__ == "__main__":
     time.sleep(2)
     arm.close_gripper()
     time.sleep(2)
+
+    # Routine number 2: Smooth rotation in 9 degrees steps
+    print("Routine: Pick up one object")
+
+    arm.move_servo(0, 140)
+
+    for angle in range(135, 171, 2):
+        arm.move_servo(4, angle, delay=0.05)
+
+    arm.move_servo(0, 176) #Close gripper to the range of 1cm between the 2 teeth
+
+    for angle in range(170, 134, -2):
+        arm.move_servo(4, angle, delay=0.1)
     
+    for angle in range(90, 181, 1):
+        arm.move_servo(5, angle, delay=0.1)
+    
+    for angle in range(135, 171, 2):
+        arm.move_servo(4, angle, delay=0.1)
+
+    arm.move_servo(0, 160) #Gripper half open 
+
+    for angle in range(170, 134, -2):
+        arm.move_servo(4, angle, delay=0.1)
+
+    for angle in range(180, 89, -1):
+        arm.move_servo(5, angle, delay=0.1)
+
+    arm.move_servo(0, 180)
+
+    print("The robot has completed the journey!")
+
     
