@@ -74,7 +74,7 @@ if __name__ == "__main__":
     arm.close_gripper()
     time.sleep(2)
 
-    # Routine number 2: Smooth rotation in 9 degrees steps
+    # Routine number 1: Smooth rotation in particular degrees steps
     print("Routine: Pick up one object")
 
     arm.move_servo(0, 140)
