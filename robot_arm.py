@@ -84,18 +84,18 @@ if __name__ == "__main__":
 
     arm.move_servo(0, 176) #Close gripper to the range of 1cm between the 2 teeth
 
-    for angle in range(170, 134, -2):
+    for angle in range(170, 134, -5):
         arm.move_servo(4, angle, delay=0.1)
     
     for angle in range(90, 181, 1):
         arm.move_servo(5, angle, delay=0.1)
     
-    for angle in range(135, 171, 2):
+    for angle in range(135, 171, 5):
         arm.move_servo(4, angle, delay=0.1)
 
     arm.move_servo(0, 160) #Gripper half open 
 
-    for angle in range(170, 134, -2):
+    for angle in range(170, 134, -5):
         arm.move_servo(4, angle, delay=0.1)
 
     for angle in range(180, 89, -1):
